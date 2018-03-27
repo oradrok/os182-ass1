@@ -20,7 +20,7 @@ struct history {
     char commands[MAX_HISTORY][100] = {0};
     int  firstCommandIndex = 0;
     int  lastCommandIndex  = 0;
-}
+};
 
 struct cmd {
   int type;
