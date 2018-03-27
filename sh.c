@@ -152,7 +152,6 @@ getcmd(char *buf, int nbuf)
   return 0;
 }
 
-int
 
 
 /************************************************************************************/
@@ -173,17 +172,17 @@ void addToHistory(char* buf){
 }
 
 //display last MAX_HISTORY commands
-voic displayHistory(){
+void displayHistory(){
     int i;
 
     for (i = 0; i < MAX_HISTORY; i++){
         if(strcmp(history.commands[(history.firstCommandIndex + i) % MAX_HISTORY], "") != 0)
-            printf(1, "%d. %s", i+1, history.commands[(history.firstCommandIndex + i) % MAX_HISTORY)]);
+            printf(1, "%d. %s", i+1, history.commands[(history.firstCommandIndex + i) % MAX_HISTORY]);
     }
 }
 
 
-
+int
 main(void)
 {
   static char buf[100];
