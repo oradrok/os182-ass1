@@ -181,6 +181,20 @@ void displayHistory(){
     }
 }
 
+void handleHistory(char* buf){
+    if(strcmp(buf, "history\n") == 0){
+        displayHistory();
+    }
+
+     if (strncmp(buf, "history -l", 10) == 0 && (strlen(buf)==13 || strlen(buf)==14)){
+        int index = atoi(buf+11);
+
+        if (index > 0 && index < MAX_HISTORY){
+            strcpy(buf, history.commands[(history.firstCommandIndex + index - 1) % MAX_HISTORY]);
+        }
+     }
+
+}
 
 int
 main(void)
@@ -201,10 +215,7 @@ main(void)
 
     addToHistory(buf);
 
-    if(strcmp(buf, "history\n") == 0){
-        displayHistory();
-        continue;
-    }
+    handleHistory(buf);
 
 
 
