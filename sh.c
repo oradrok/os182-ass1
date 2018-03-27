@@ -181,9 +181,12 @@ void displayHistory(){
     }
 }
 
-void handleHistory(char* buf){
+//handle "history" and "history -l ##" commands
+// return 1 if "history" is called, no need to fork and exec
+int handleHistory(char* buf){
     if(strcmp(buf, "history\n") == 0){
         displayHistory();
+        return 1;
     }
 
      if (strncmp(buf, "history -l", 10) == 0 && (strlen(buf)==13 || strlen(buf)==14)){
@@ -194,6 +197,7 @@ void handleHistory(char* buf){
         }
      }
 
+    return 0;
 }
 
 int
@@ -215,7 +219,8 @@ main(void)
 
     addToHistory(buf);
 
-    handleHistory(buf);
+    if(handleHistory(buf) == 1)
+        continue;
 
 
 
