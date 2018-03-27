@@ -7,6 +7,18 @@
 #include "proc.h"
 #include "spinlock.h"
 
+#define MAX_VARIABLES 32
+#define MAX_VAR_NAME_LENGTH 33
+#define MAX_VAR_VAL_LENGTH 129
+
+typedef struct {
+    char variable[MAX_VAR_NAME_LENGTH];
+    char value[MAX_VAR_VAL_LENGTH];
+} sysVar;
+
+sysVar sysVariables[MAX_VARIABLES];
+int sysVarNum = 0;
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -531,4 +543,19 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+int findVar(char* variable){
+    for(int i = 0; i < sysVarNum; i++){
+        if(strncmp(sysVariables[i].variable, variable, MAX_VAR_NAME_LENGTH) == 0)
+            return i;
+    }
+    return -1;
+}
+
+void shiftLeft(int index){
+    for(; index < sysVarNum -1; index++){
+        strncpy(sysVariables[index].variable, sysVariables[index + 1].variable, MAX_VAR_NAME_LENGTH);
+        strncpy(sysVariables[index].value, sysVariables[index + 1].value, MAX_VAR_VAL_LENGTH);
+    }
 }

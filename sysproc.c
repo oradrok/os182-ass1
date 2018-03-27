@@ -96,3 +96,32 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+int sys_setVariable(void){
+    char* variable;
+    char* value;
+
+    if (argptr(0, &variable, 32) < 0 || argptr(1, &value, 128) < 0)
+        return -1;
+
+    return setVariable(variable, value);
+}
+
+int sys_getVariable(void){
+    char* variable;
+    char* value;
+
+    if (argptr(0, &variable, 32) < 0 || argptr(1, &value, 128) < 0)
+        return -1;
+
+    return getVariable(variable, value);
+}
+
+int sys_remVariable(void){
+    char* variable;
+
+    if (argptr(0, &variable, 32) < 0 )
+        return -1;
+
+    return remVariable(variable);
+}
