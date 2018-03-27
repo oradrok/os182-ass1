@@ -159,7 +159,7 @@ getcmd(char *buf, int nbuf)
 //add all commands to history array
 //history will hold maximum MAX_HISTORY commands
 void addToHistory(char* buf){
-    if(history.firstCommandIndex == history.lastCommandIndex && strcmp(history.commands[firstCommandIndex], "") != 0){
+    if(history.firstCommandIndex == history.lastCommandIndex && strcmp(history.commands[history.firstCommandIndex], "") != 0){
         history.firstCommandIndex += 1;
         history.firstCommandIndex %= MAX_HISTORY;
     }
