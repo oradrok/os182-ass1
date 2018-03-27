@@ -16,6 +16,12 @@
 //task 1.1
 #define MAX_HISTORY 16
 
+struct history {
+    char commands[MAX_HISTORY][100] = {0};
+    int  firstCommandIndex = 0;
+    int  lastCommandIndex  = 0;
+}
+
 struct cmd {
   int type;
 };
@@ -145,6 +151,37 @@ getcmd(char *buf, int nbuf)
 }
 
 int
+
+
+/************************************************************************************/
+
+//add all commands to history array
+//history will hold maximum MAX_HISTORY commands
+void addToHistory(char* buf){
+    if(strcmp(buf, "\n") != 0){
+        strcpy(history.commands[history.lastCommandIndex], buf);
+        history.lastCommandIndex += 1;
+        history.lastCommandIndex %= MAX_HISTORY;
+
+        if(history.firstCommandIndex == history.lastCommandIndex){
+            history.firstCommandIndex += 1;
+            history.firstCommandIndex %= MAX_HISTORY;
+        }
+    }
+}
+
+//display last MAX_HISTORY commands
+voic displayHistory(){
+    int i;
+
+    for (i = 0; i < MAX_HISTORY; i++){
+        if(strcmp(history.commands[(history.firstCommandIndex + i) % MAX_HISTORY)], "") != 0)
+            printf(1, "%d. %s", i+1, history.commands[(history.firstCommandIndex + i) % MAX_HISTORY)]);
+    }
+}
+
+
+
 main(void)
 {
   static char buf[100];
@@ -160,6 +197,16 @@ main(void)
 
   // Read and run input commands.
   while(getcmd(buf, sizeof(buf)) >= 0){
+
+    addToHistory(buf);
+
+    if(strcmp(buf, "history\n") == 0){
+        displayHistory();
+        continue;
+    }
+
+
+
     if(buf[0] == 'c' && buf[1] == 'd' && buf[2] == ' '){
       // Chdir must be called by the parent, not the child.
       buf[strlen(buf)-1] = 0;  // chop \n
