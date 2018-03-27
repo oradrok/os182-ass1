@@ -175,7 +175,7 @@ voic displayHistory(){
     int i;
 
     for (i = 0; i < MAX_HISTORY; i++){
-        if(strcmp(history.commands[(history.firstCommandIndex + i) % MAX_HISTORY)], "") != 0)
+        if(strcmp(history.commands[(history.firstCommandIndex + i) % MAX_HISTORY], "") != 0)
             printf(1, "%d. %s", i+1, history.commands[(history.firstCommandIndex + i) % MAX_HISTORY)]);
     }
 }
