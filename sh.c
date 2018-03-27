@@ -193,7 +193,7 @@ int handleHistory(char* buf){
         int index = atoi(buf+11);
 
         if (index > 0 && index < MAX_HISTORY){
-            if(strcmp(history.commands[(history.firstCommandIndex + index - 1) % MAX_HISTORY], "history\n"))  {
+            if(strcmp(history.commands[(history.firstCommandIndex + index - 1) % MAX_HISTORY], "history\n") == 0)  {
                 displayHistory();
                 return 1;
             }
