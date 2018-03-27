@@ -13,6 +13,9 @@
 
 #define MAXARGS 10
 
+//task 1.1
+#define MAX_HISTORY 16
+
 struct cmd {
   int type;
 };
