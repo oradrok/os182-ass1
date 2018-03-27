@@ -16,11 +16,13 @@
 //task 1.1
 #define MAX_HISTORY 16
 
-struct history {
+struct sHistory {
     char commands[MAX_HISTORY][100];
-    int  firstCommandIndex = 0;
-    int  lastCommandIndex  = 0;
+    int  firstCommandIndex;
+    int  lastCommandIndex;
 };
+
+struct sHistory history;
 
 struct cmd {
   int type;
