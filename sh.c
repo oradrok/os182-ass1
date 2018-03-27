@@ -17,7 +17,7 @@
 #define MAX_HISTORY 16
 
 struct history {
-    char commands[MAX_HISTORY][100] = {0};
+    char commands[MAX_HISTORY][100];
     int  firstCommandIndex = 0;
     int  lastCommandIndex  = 0;
 };
