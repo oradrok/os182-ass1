@@ -12,3 +12,11 @@
 #define NBUF         (MAXOPBLOCKS*3)  // size of disk block cache
 #define FSSIZE       1000  // size of file system in blocks
 
+//task 1.1
+#define MAX_HISTORY 16
+
+//task 1.2
+#define MAX_VARIABLES 32
+#define MAX_VAR_NAME_LENGTH 33
+#define MAX_VAR_VAL_LENGTH 129
+#define MAX_COMMAND_LENGTH 128

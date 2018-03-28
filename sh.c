@@ -3,6 +3,7 @@
 #include "types.h"
 #include "user.h"
 #include "fcntl.h"
+#include "param.h"
 
 // Parsed command representation
 #define EXEC  1
@@ -13,8 +14,7 @@
 
 #define MAXARGS 10
 
-//task 1.1
-#define MAX_HISTORY 16
+
 
 struct sHistory {
     char commands[MAX_HISTORY][100];
@@ -199,14 +199,94 @@ int handleHistory(char* buf){
             }
 
             strcpy(buf, history.commands[(history.firstCommandIndex + index - 1) % MAX_HISTORY]);
+            replaceSysVariables(buf);
         }
      }
 
     return 0;
 }
 
-int
-main(void)
+//replace system variables with their values, if exist
+// replace to "ERROR" if $<name> does not exist
+void replaceSysVariables(char* buf)
+{
+    char  rest[MAX_VAR_VAL_LENGTH];
+    char  varName[MAX_VAR_NAME_LENGTH];
+    char  value[MAX_VAR_VAL_LENGTH];
+    int   varNameSize = 0;
+    char* tmpch = buf;
+
+    while (*tmpch){
+        if (*tmpch == '$') {
+            tmpch++; // $test
+            while (*tmpch && *tmpch != '\n' && *tmpch != '$' && *tmpch != ' '){
+                varNameSize++;
+                tmpch++;
+            }
+            strcpy(rest, tmpch);
+            strncpy(varName, tmpch-varNameSize, varNameSize);
+
+            if (varNameSize < MAX_VAR_NAME_LENGTH)
+                varName[varNameSize] = 0;
+            if (varName[varNameSize-1] == '\n')
+                varName[varNameSize-1] = 0;
+            if(getVariable(varName, value) == -1){
+                return;
+            }
+
+            strcpy(tmpch-varNameSize-1, value);
+            strcpy(tmpch-varNameSize-1+strlen(value), rest);
+            tmpch = tmpch-varNameSize-1;
+            tmpch += strlen(value);
+            varNameSize = 0;
+            value[0] = 0;
+        }
+        else {
+            tmpch++;
+        }
+    }
+}
+
+int isSetVariableCommand(char* buf)
+{
+    int idx = 0;
+    char* ch = buf;
+    char varName[MAX_VAR_NAME_LENGTH];
+    char varValue[MAX_VAR_VAL_LENGTH];
+
+    while (*ch){
+        if (*ch == '=' && idx > 0 && isLetter(ch-1) && *(ch+1))
+        {
+            if(idx >= MAX_VAR_NAME_LENGTH)
+                return 0;
+
+            strncpy(varName, buf, idx);
+            varName[idx] = 0;
+            idx++;
+            ch++;
+            strncpy(varValue, ch, MAX_VAR_VAL_LENGTH);
+            if (varValue[strlen(varValue)-1] == '\n')
+                varValue[strlen(varValue)-1] = 0;
+            setVariable(varName, varValue);
+            return 1;
+        }
+
+        idx++;
+        ch++;
+    }
+    return 0;
+}
+
+
+int isLetter(char* ch)
+{
+    if ((*ch >= 'a' && *ch <= 'z') || (*ch >= 'A' && *ch <= 'Z'))
+        return 1;
+    return 0;
+}
+
+
+int main(void)
 {
   static char buf[100];
   int fd;
@@ -223,11 +303,13 @@ main(void)
   while(getcmd(buf, sizeof(buf)) >= 0){
 
     addToHistory(buf);
+    replaceSysVariables(buf);
 
     if(handleHistory(buf) == 1)
         continue;
 
-
+    if(isSetVariableCommand(buf))
+        continue;
 
     if(buf[0] == 'c' && buf[1] == 'd' && buf[2] == ' '){
       // Chdir must be called by the parent, not the child.

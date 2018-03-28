@@ -7,9 +7,7 @@
 #include "proc.h"
 #include "spinlock.h"
 
-#define MAX_VARIABLES 32
-#define MAX_VAR_NAME_LENGTH 33
-#define MAX_VAR_VAL_LENGTH 129
+
 
 typedef struct {
     char variable[MAX_VAR_NAME_LENGTH];

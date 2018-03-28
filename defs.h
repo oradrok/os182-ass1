@@ -121,6 +121,12 @@ int             wait(void);
 void            wakeup(void*);
 void            yield(void);
 
+//my addition
+int 			setVariable(char* variable, char* value);
+int 			getVariable(char* variable, char* value);
+int 			remVariable(char* variable);
+
+
 // swtch.S
 void            swtch(struct context**, struct context*);
 
