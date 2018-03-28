@@ -51,11 +51,11 @@ int main(int argc, char *argv[])
 {
 
 
-#ifdef CFSD
+/*#ifdef CFSD
 	int cfsd = 1;
 #else
 	int cfsd = 0;
-#endif
+#endif*/
 //SchedSanity
 
 	int pids[NUM_OF_CHILDS];
