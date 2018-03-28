@@ -585,7 +585,7 @@ int setVariable(char* variable, char* value){
         return -2;
     }
 
-    idx = searchVariable(variable); // check if variable with same name exists
+    idx = findVar(variable); // check if variable with same name exists
     if ( (idx == -1) && (sysVarNum == MAX_VARIABLES) ){ // verify number of variables set
         release(&ptable.lock);
         return -1; // too many variables, can not add new variable.
@@ -600,5 +600,23 @@ int setVariable(char* variable, char* value){
     strncpy(sysVariables[idx].value, value, MAX_VAR_VAL_LENGTH);
     sysVariables[idx].value[strlen(value)] = '\0';
     release(&ptable.lock);
+    return 0;
+}
+
+int remVariable(char* variable)
+{
+    int idx;
+    acquire(&ptable.lock);
+
+    idx = findVar(variable);
+    if (idx == -1){//variable not exist
+        release(&ptable.lock);
+        return -1;
+    }
+
+    shiftLeft(idx);
+    sysVarNum--;
+    release(&ptable.lock);
+
     return 0;
 }
