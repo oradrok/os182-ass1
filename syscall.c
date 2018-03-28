@@ -107,6 +107,7 @@ extern int sys_yield(void);
 extern int sys_setVariable(void);
 extern int sys_getVariable(void);
 extern int sys_remVariable(void);
+extern int sys_wait2(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -133,7 +134,8 @@ static int (*syscalls[])(void) = {
 [SYS_yield]   sys_yield,
 [SYS_setVariable] sys_setVariable,
 [SYS_getVariable] sys_getVariable,
-[SYS_remVariable] sys_remVariable
+[SYS_remVariable] sys_remVariable,
+[SYS_wait2]   sys_wait2
 
 };
 
