@@ -620,3 +620,20 @@ int remVariable(char* variable)
 
     return 0;
 }
+
+int getVariable(char* variable, char* value)
+{
+    acquire(&ptable.lock);
+    int idx;
+
+    idx = findVar(variable);
+    if (idx == -1){//variable not exist
+        release(&ptable.lock);
+        return -1;
+    }
+
+    strncpy(value, sysVariables[idx].value, MAX_VAR_VAL_LENGTH);
+
+    release(&ptable.lock);
+    return 0;
+}
