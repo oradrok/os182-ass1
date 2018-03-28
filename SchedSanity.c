@@ -1,10 +1,10 @@
 #include "types.h"
 #include "user.h"
 #define NUM_OF_CHILDS 11
-#define CLAC_MEDIUM_SIZE_LOOP 100
-#define CALC_LARGE_SIZE_LOOP 2000
-#define IO_MEDIUM_SIZE_LOOP 100
-#define IO_LARGE_SIZE_LOOP 200
+#define CLAC_MEDIUM_SIZE_LOOP 1000
+#define CALC_LARGE_SIZE_LOOP 20000
+#define IO_MEDIUM_SIZE_LOOP 1000
+#define IO_LARGE_SIZE_LOOP 20000
 
 int
 gcd ( int a, int b )
