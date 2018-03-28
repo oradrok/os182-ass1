@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
 		int pid;
 	    pid = fork();
 		if(pid == 0){
-			if(cfsd) set_priority(i%3 + 1);
+//			if(cfsd) set_priority(i%3 + 1);
 			if(i%4 == 0)
 				small_loop_calculation(); //Calculation only - These processes will perform asimple calculation within a medium sized loop
 			if(i%4 == 1)
