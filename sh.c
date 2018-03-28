@@ -155,6 +155,7 @@ getcmd(char *buf, int nbuf)
 
 
 /************************************************************************************/
+void replaceSysVariables(char* buf);
 
 //add all commands to history array
 //history will hold maximum MAX_HISTORY commands
