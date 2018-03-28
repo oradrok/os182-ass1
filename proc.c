@@ -99,6 +99,11 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
 
+    //Task 2 Initialization
+  p->iotime = 0;
+  p->rtime = 0;
+  p->ctime = ticks;
+
   release(&ptable.lock);
 
   // Allocate kernel stack.
@@ -256,6 +261,9 @@ exit(void)
   iput(curproc->cwd);
   end_op();
   curproc->cwd = 0;
+
+  //Task 2
+  curproc->etime = ticks;
 
   acquire(&ptable.lock);
 
