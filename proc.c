@@ -545,6 +545,7 @@ procdump(void)
   }
 }
 
+//return index of variable if exist in variables array, -1 otherwise
 int findVar(char* variable){
     for(int i = 0; i < sysVarNum; i++){
         if(strncmp(sysVariables[i].variable, variable, MAX_VAR_NAME_LENGTH) == 0)
@@ -553,9 +554,51 @@ int findVar(char* variable){
     return -1;
 }
 
+
 void shiftLeft(int index){
     for(; index < sysVarNum -1; index++){
         strncpy(sysVariables[index].variable, sysVariables[index + 1].variable, MAX_VAR_NAME_LENGTH);
         strncpy(sysVariables[index].value, sysVariables[index + 1].value, MAX_VAR_VAL_LENGTH);
     }
+}
+
+//checks if variable name is legal
+//return 1 if legal, 0 if not
+int isVarNameLegit(char* variable){
+    char* tempVar = variable;
+
+    while (*tempVar){
+        if ( !(*tempVar >= 'A' && *tempVar <= 'Z') && !(*tempVar >= 'a' && *tempVar <= 'z')){
+            return 0;
+        }
+        tempVar++;
+    }
+    return 1;
+}
+
+int setVariable(char* variable, char* value){
+    int idx;
+    acquire(&ptable.lock);
+
+    if (!isVarNameLegit(variable)){
+        release(&ptable.lock);
+        return -2;
+    }
+
+    idx = searchVariable(variable); // check if variable with same name exists
+    if ( (idx == -1) && (sysVarNum == MAX_VARIABLES) ){ // verify number of variables set
+        release(&ptable.lock);
+        return -1; // too many variables, can not add new variable.
+    }
+
+    if (idx == -1){ // variable does not exist
+        idx = sysVarNum;
+        strncpy(sysVariables[idx].variable, variable, MAX_VAR_NAME_LENGTH);
+        sysVariables[idx].variable[strlen(variable)] = '\0';
+        sysVarNum++;
+    }
+    strncpy(sysVariables[idx].value, value, MAX_VAR_VAL_LENGTH);
+    sysVariables[idx].value[strlen(value)] = '\0';
+    release(&ptable.lock);
+    return 0;
 }
