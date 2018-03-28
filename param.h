@@ -20,3 +20,6 @@
 #define MAX_VAR_NAME_LENGTH 33
 #define MAX_VAR_VAL_LENGTH 129
 #define MAX_COMMAND_LENGTH 128
+
+//task 3
+#define QUANTOM 5
