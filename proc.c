@@ -505,7 +505,7 @@ sleep(void *chan, struct spinlock *lk)
 
   //task 3 re-initializing
   p->ticksNum = 0;
-  entryToQueuep->entryToQueue = ticks;
+  p->entryToQueue = ticks;
 
   sched();
 
