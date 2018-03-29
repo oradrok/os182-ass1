@@ -11,10 +11,11 @@
 int gcd ( int n1, int n2 )
 {
     int i;
+    int gcd;
     for(i=1; i <= n1 && i <= n2; ++i)
     {
         if(n1%i==0 && n2%i==0)
-            return i;
+            gcd = i;
     }
     return 1;
 }
