@@ -28,7 +28,7 @@ OBJS = \
 	vectors.o\
 	vm.o\
 
-//define scheduling flag
+#define scheduling flag
 ifndef SCHEDFLAG
 SCHEDFLAG := DEFAULT
 endif
