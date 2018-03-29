@@ -102,7 +102,7 @@ trap(struct trapframe *tf)
   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
     exit();
 
-  #ifndef FCFS
+  #if defined(DEFAULT) || defined(SRT) || defined(CFSD)
   // Force process to give up CPU on clock tick.
   // If interrupts were on while locks held, would need to check nlock.
   struct proc* p = myproc();

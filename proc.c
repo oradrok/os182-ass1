@@ -842,7 +842,7 @@ int set_priority(int priority) {
         myproc()->decayFactor = HIGH;
     else if (priority == normal)
         myproc()->decayFactor = NORMAL;
-    else if (priority == 3)
+    else if (priority == low)
         myproc()->decayFactor = LOW;
     else return -1;
     return 0;
