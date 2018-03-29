@@ -55,6 +55,8 @@ struct proc {
   int iotime;				   // I/O time
   int rtime;				   // Running time
 
+  int ticksNum;                // num of ticks per running quanta
+
 };
 
 void updateProcessesTime();

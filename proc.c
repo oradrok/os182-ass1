@@ -99,10 +99,13 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
 
-    //Task 2 Initialization
+   //Task 2 Initialization
   p->iotime = 0;
   p->rtime = 0;
   p->ctime = ticks;
+
+  //Task 3 initialization
+  p->ticksNum = 0;
 
   release(&ptable.lock);
 
@@ -361,6 +364,9 @@ scheduler(void)
       switchuvm(p);
       p->state = RUNNING;
 
+      //proc state changed from runnable to running, add 1 to rtime
+      (p->rtime)++;
+
       swtch(&(c->scheduler), p->context);
       switchkvm();
 
@@ -404,7 +410,12 @@ void
 yield(void)
 {
   acquire(&ptable.lock);  //DOC: yieldlock
-  myproc()->state = RUNNABLE;
+  struct proc *p = myproc();
+  p->state = RUNNABLE;
+
+  //task 3 re-initializing
+  p->ticksNum = 0;
+
   sched();
   release(&ptable.lock);
 }
@@ -478,8 +489,11 @@ wakeup1(void *chan)
   struct proc *p;
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == SLEEPING && p->chan == chan)
+    if(p->state == SLEEPING && p->chan == chan){
       p->state = RUNNABLE;
+      //task 3 re-initializing
+      p->ticksNum = 0;
+    }
 }
 
 // Wake up all processes sleeping on chan.
@@ -504,8 +518,11 @@ kill(int pid)
     if(p->pid == pid){
       p->killed = 1;
       // Wake process from sleep if necessary.
-      if(p->state == SLEEPING)
-        p->state = RUNNABLE;
+      if(p->state == SLEEPING){
+        p->state    = RUNNABLE;
+        //task 3 re-initializing
+        p->ticksNum = 0;
+      }
       release(&ptable.lock);
       return 0;
     }
@@ -692,9 +709,10 @@ void updateProcessesTime() {
     acquire(&ptable.lock);
     for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
         if (p->state == RUNNING) {
-            p->rtime++;
+            (p->rtime)++;
+            (p->ticksNum)++;
         } else if (p->state == SLEEPING) {
-            p->iotime++;
+            (p->iotime)++;
         }
     }
     release(&ptable.lock);
