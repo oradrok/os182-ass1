@@ -1,50 +1,47 @@
 #include "types.h"
 #include "user.h"
+
 #define NUM_OF_CHILDS 11
 #define CALC_MEDIUM_SIZE_LOOP 1000000
 #define CALC_LARGE_SIZE_LOOP 200000000
-#define IO_MEDIUM_SIZE_LOOP 1000
-#define IO_LARGE_SIZE_LOOP 20000
+#define IO_MEDIUM_SIZE_LOOP 10000
+#define IO_LARGE_SIZE_LOOP 200000
 
-int
-gcd ( int a, int b )
+
+int gcd ( int a, int b )
 {
-  int c;
-  while ( a != 0 ) {
-     c = a; a = b%a;  b = c;
-  }
-  return b;
+    int i;
+    for(i=1; i <= n1 && i <= n2; ++i)
+    {
+        if(n1%i==0 && n2%i==0)
+            return i;
+    }
+    return 1;
 }
 
 
 
-void small_loop_calculation(){
+void medium_loop_calculation(){
 	for(int j=0;j<CALC_MEDIUM_SIZE_LOOP;++j)
 		gcd(j+1,j+2);
-
 }
-
-
 
 void large_loop_calculation(){
 	for(int j=0;j<CALC_LARGE_SIZE_LOOP;++j)
 		gcd(j+1,j+2);
-
 }
 
-
-void small_loop_print(){
+void medium_loop_print(){
 	for(int j=0;j<IO_MEDIUM_SIZE_LOOP;++j){
-		printf(1, "hello world!\n");
+		printf(1, "print something\n");
 	}
 }
 
 void large_loop_print(){
 	for(int j=0;j<IO_LARGE_SIZE_LOOP;++j){
-		printf(1, "hello world!\n");
+		printf(1, "print something else\n");
 	}
 }
-
 
 
 int main(int argc, char *argv[])
@@ -62,14 +59,15 @@ int cfsd = 0;
 	    pid = fork();
 		if(pid == 0){
 			if(cfsd) set_priority(i%3 + 1);
+
 			if(i%4 == 0)
-				small_loop_calculation(); //Calculation only - These processes will perform asimple calculation within a medium sized loop
+				medium_loop_calculation();
 			if(i%4 == 1)
-				large_loop_calculation(); //Calculation only – These processes will perform simple calculation within a very large loop
+				large_loop_calculation();
 			if(i%4 == 2)
-				small_loop_print();// Calculation + IO – These processes will perform printing to screen within a medium sized loop
+				medium_loop_print();
 			if(i%4 == 3)
-				large_loop_print(); // Calculation + IO – These processes will perform printing to screen within a very large loop
+				large_loop_print();
 
 			exit();
 		}
@@ -95,10 +93,10 @@ int cfsd = 0;
 	}
 
 
-	printf(1,"Calculation Medium -  Wait time: %d,  Run time: %d, IO Time: %d\n\n",sum_wtime[0]/NUM_OF_CHILDS,sum_rtime[0]/NUM_OF_CHILDS,sum_iotime[0]/NUM_OF_CHILDS);
-	printf(1,"Calculation Large -  Wait time: %d,  Run time: %d, IO Time: %d\n\n",sum_wtime[1]/NUM_OF_CHILDS,sum_rtime[1]/NUM_OF_CHILDS,sum_iotime[1]/NUM_OF_CHILDS);
-	printf(1,"Calculation + IO Medium -  Wait time: %d,  Run time: %d, IO Time: %d\n\n",sum_wtime[2]/NUM_OF_CHILDS,sum_rtime[2]/NUM_OF_CHILDS,sum_iotime[2]/NUM_OF_CHILDS);
-	printf(1,"Calculation + IO Large -  Wait time: %d,  Run time: %d, IO Time: %d\n\n",sum_wtime[3]/NUM_OF_CHILDS,sum_rtime[3]/NUM_OF_CHILDS,sum_iotime[3]/NUM_OF_CHILDS);
+	printf(1,"Calculation Medium -  Wait time: %d,  Run time: %d, IO Time: %d\n\n", sum_wtime[0]/NUM_OF_CHILDS, sum_rtime[0]/NUM_OF_CHILDS, sum_iotime[0]/NUM_OF_CHILDS);
+	printf(1,"Calculation Large -  Wait time: %d,  Run time: %d, IO Time: %d\n\n", sum_wtime[1]/NUM_OF_CHILDS, sum_rtime[1]/NUM_OF_CHILDS, sum_iotime[1]/NUM_OF_CHILDS);
+	printf(1,"Calculation + IO Medium -  Wait time: %d,  Run time: %d, IO Time: %d\n\n", sum_wtime[2]/NUM_OF_CHILDS, sum_rtime[2]/NUM_OF_CHILDS, sum_iotime[2]/NUM_OF_CHILDS);
+	printf(1,"Calculation + IO Large -  Wait time: %d,  Run time: %d, IO Time: %d\n\n", sum_wtime[3]/NUM_OF_CHILDS, sum_rtime[3]/NUM_OF_CHILDS, sum_iotime[3]/NUM_OF_CHILDS);
 
 	exit();
 }
