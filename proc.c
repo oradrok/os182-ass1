@@ -352,7 +352,7 @@ scheduler(void)
     // Enable interrupts on this processor.
     sti();
 
-//#ifdef DEFAULT
+#ifdef DEFAULT
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
@@ -380,7 +380,7 @@ scheduler(void)
       c->proc = 0;
     }
     release(&ptable.lock);
-//#endif
+#endif
 
 #ifdef FCFS
         struct proc* min_proc = 0;
