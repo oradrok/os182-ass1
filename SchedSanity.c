@@ -8,7 +8,7 @@
 #define IO_LARGE_SIZE_LOOP 200000
 
 
-int gcd ( int a, int b )
+int gcd ( int n1, int n2 )
 {
     int i;
     for(i=1; i <= n1 && i <= n2; ++i)
