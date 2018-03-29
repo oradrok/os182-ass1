@@ -58,11 +58,18 @@ struct proc {
   int ticksNum;                // DEFAULT num of ticks per running quanta
   int entryToQueue;            // FCFS when process enter the queue
   float approximation;         // SRT
+  float decayFactor;           // CFSD
 
 };
 
 void updateProcessesTime();
 void updateSRT(struct proc* p);
+float calculateRatio(struct proc* p);
+
+enum Priority {high = 1, normal = 2, low = 3};
+#define HIGH 0.75
+#define NORMAL 1
+#define LOW 1.25
 
 // Process memory is laid out contiguously, low addresses first:
 //   text

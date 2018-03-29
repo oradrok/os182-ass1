@@ -136,3 +136,10 @@ int sys_wait2(void){
     return -1;
   return wait2(pid, wtime, rtime, iotime);
 }
+
+int sys_set_priority(void) {
+    int priority;
+    if (argint(0, &priority) < 0)
+        return -1;
+    else return set_priority(priority);
+}
