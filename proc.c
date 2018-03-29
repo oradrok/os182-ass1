@@ -848,6 +848,6 @@ int set_priority(int priority) {
     return 0;
 }
 
-static float calculateRatio(struct proc* p){
+float calculateRatio(struct proc* p){
     return  (float)( (p->rtime * p->decayFactor) / (ticks - p->ctime - p->iotime) );
 }

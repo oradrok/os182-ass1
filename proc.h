@@ -64,7 +64,7 @@ struct proc {
 
 void updateProcessesTime();
 void updateSRT(struct proc* p);
-static float calculateRatio(struct proc* p);
+float calculateRatio(struct proc* p);
 
 enum Priority {high = 1, normal = 2, low = 3};
 #define HIGH 0.75
