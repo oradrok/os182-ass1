@@ -22,4 +22,4 @@
 #define MAX_COMMAND_LENGTH 128
 
 //task 3
-#define QUANTOM 5
+#define QUANTUM 5
