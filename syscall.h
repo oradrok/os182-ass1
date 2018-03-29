@@ -25,5 +25,5 @@
 #define SYS_setVariable 23
 #define SYS_getVariable 24
 #define SYS_remVariable 25
-#define SYS_wait2 26
+#define SYS_wait2  26
 #define SYS_set_priority 27
