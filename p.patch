@@ -1,0 +1,1034 @@
+diff --git a/Makefile b/Makefile
+index 06eea5d..b1a30a3 100644
+--- a/Makefile
++++ b/Makefile
+@@ -28,6 +28,11 @@ OBJS = \
+ 	vectors.o\
+ 	vm.o\
+ 
++#define scheduling flag
++ifndef SCHEDFLAG
++SCHEDFLAG := DEFAULT
++endif
++
+ # Cross-compiling (e.g., on Mac OS X)
+ # TOOLPREFIX = i386-jos-elf
+ 
+@@ -76,9 +81,10 @@ AS = $(TOOLPREFIX)gas
+ LD = $(TOOLPREFIX)ld
+ OBJCOPY = $(TOOLPREFIX)objcopy
+ OBJDUMP = $(TOOLPREFIX)objdump
+-CFLAGS = -fno-pic -static -fno-builtin -fno-strict-aliasing -O2 -Wall -MD -ggdb -m32 -Werror -fno-omit-frame-pointer
++CFLAGS = -fno-pic -static -fno-builtin -fno-strict-aliasing -O -Wall -MD -ggdb -m32 -Werror -fno-omit-frame-pointer
+ #CFLAGS = -fno-pic -static -fno-builtin -fno-strict-aliasing -fvar-tracking -fvar-tracking-assignments -O0 -g -Wall -MD -gdwarf-2 -m32 -Werror -fno-omit-frame-pointer
+ CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
++CFLAGS += -D $(SCHEDFLAG)
+ ASFLAGS = -m32 -gdwarf-2 -Wa,-divide
+ # FreeBSD ld wants ``elf_i386_fbsd''
+ LDFLAGS += -m $(shell $(LD) -V | grep elf_i386 2>/dev/null | head -n 1)
+@@ -174,6 +180,7 @@ UPROGS=\
+ 	_usertests\
+ 	_wc\
+ 	_zombie\
++	_SchedSanity\
+ 
+ fs.img: mkfs README $(UPROGS)
+ 	./mkfs fs.img README $(UPROGS)
+@@ -243,7 +250,7 @@ qemu-nox-gdb: fs.img xv6.img .gdbinit
+ EXTRA=\
+ 	mkfs.c ulib.c user.h cat.c echo.c forktest.c grep.c kill.c\
+ 	ln.c ls.c mkdir.c rm.c stressfs.c usertests.c wc.c zombie.c\
+-	printf.c umalloc.c\
++	printf.c umalloc.c SchedSanity.c\
+ 	README dot-bochsrc *.pl toc.* runoff runoff1 runoff.list\
+ 	.gdbinit.tmpl gdbutil\
+ 
+diff --git a/SchedSanity.c b/SchedSanity.c
+new file mode 100644
+index 0000000..8622df8
+--- /dev/null
++++ b/SchedSanity.c
+@@ -0,0 +1,97 @@
++#include "types.h"
++#include "user.h"
++
++#define NUM_OF_CHILDS 12
++#define CALC_MEDIUM_SIZE_LOOP 1000000
++#define CALC_LARGE_SIZE_LOOP 200000000
++#define IO_MEDIUM_SIZE_LOOP 1000
++#define IO_LARGE_SIZE_LOOP 20000
++
++
++int gcd ( int a, int b ){
++    int c;
++    while ( a != 0 ) {
++       c = a; a = b%a;  b = c;
++    }
++    return b;
++}
++
++void medium_loop_calculation(){
++	for(int j=0;j<CALC_MEDIUM_SIZE_LOOP;++j)
++		gcd(j+1,j+2);
++}
++
++void large_loop_calculation(){
++	for(int j=0;j<CALC_LARGE_SIZE_LOOP;++j)
++		gcd(j+1,j+2);
++}
++
++void medium_loop_print(){
++	for(int j=0;j<IO_MEDIUM_SIZE_LOOP;++j){
++		printf(1, "print something\n");
++	}
++}
++
++void large_loop_print(){
++	for(int j=0;j<IO_LARGE_SIZE_LOOP;++j){
++		printf(1, "print something else\n");
++	}
++}
++
++
++int main(int argc, char *argv[])
++{
++int cfsd = 0;
++
++#ifdef CFSD
++	cfsd = 1;
++#endif
++
++	int pids[NUM_OF_CHILDS];
++
++	for(int i=0; i< NUM_OF_CHILDS; i++){
++		int pid;
++	    pid = fork();
++		if(pid == 0){
++			if(cfsd) set_priority(i%3 + 1);
++
++			if(i%4 == 0)
++				medium_loop_calculation();
++			if(i%4 == 1)
++				large_loop_calculation();
++			if(i%4 == 2)
++				medium_loop_print();
++			if(i%4 == 3)
++				large_loop_print();
++
++			exit();
++		}
++		else
++			pids[i] = pid;
++
++	}
++
++
++	int sum_wtime[4];
++	int sum_rtime[4];
++	int sum_iotime[4];
++	int wtime;
++	int rtime;
++	int iotime;
++
++	for(int i=0; i< NUM_OF_CHILDS; i++){
++			wait2(pids[i],&wtime,&rtime,&iotime);
++			sum_wtime[i%4] += wtime;
++			sum_rtime[i%4] += rtime;
++			sum_iotime[i%4] += iotime;
++
++	}
++
++
++	printf(1,"Calculation Medium -  Wait time: %d,  Run time: %d, IO Time: %d\n\n", sum_wtime[0]/NUM_OF_CHILDS, sum_rtime[0]/NUM_OF_CHILDS, sum_iotime[0]/NUM_OF_CHILDS);
++	printf(1,"Calculation Large -  Wait time: %d,  Run time: %d, IO Time: %d\n\n", sum_wtime[1]/NUM_OF_CHILDS, sum_rtime[1]/NUM_OF_CHILDS, sum_iotime[1]/NUM_OF_CHILDS);
++	printf(1,"Calculation + IO Medium -  Wait time: %d,  Run time: %d, IO Time: %d\n\n", sum_wtime[2]/NUM_OF_CHILDS, sum_rtime[2]/NUM_OF_CHILDS, sum_iotime[2]/NUM_OF_CHILDS);
++	printf(1,"Calculation + IO Large -  Wait time: %d,  Run time: %d, IO Time: %d\n\n", sum_wtime[3]/NUM_OF_CHILDS, sum_rtime[3]/NUM_OF_CHILDS, sum_iotime[3]/NUM_OF_CHILDS);
++
++	exit();
++}
+\ No newline at end of file
+diff --git a/defs.h b/defs.h
+index 82fb982..f8c1fd4 100644
+--- a/defs.h
++++ b/defs.h
+@@ -121,6 +121,14 @@ int             wait(void);
+ void            wakeup(void*);
+ void            yield(void);
+ 
++//my addition
++int 			setVariable(char* variable, char* value);
++int 			getVariable(char* variable, char* value);
++int 			remVariable(char* variable);
++int 			wait2(int pid, int* wtime, int* rtime, int* iotime);
++int             set_priority(int priority);
++
++
+ // swtch.S
+ void            swtch(struct context**, struct context*);
+ 
+diff --git a/param.h b/param.h
+index a7e90ef..3195bff 100644
+--- a/param.h
++++ b/param.h
+@@ -12,3 +12,15 @@
+ #define NBUF         (MAXOPBLOCKS*3)  // size of disk block cache
+ #define FSSIZE       1000  // size of file system in blocks
+ 
++//task 1.1
++#define MAX_HISTORY 16
++
++//task 1.2
++#define MAX_VARIABLES 32
++#define MAX_VAR_NAME_LENGTH 33
++#define MAX_VAR_VAL_LENGTH 129
++#define MAX_COMMAND_LENGTH 128
++
++//task 3
++#define QUANTUM 5
++#define ALPHA 0.5
+diff --git a/proc.c b/proc.c
+index 806b1b1..04fa445 100644
+--- a/proc.c
++++ b/proc.c
+@@ -7,6 +7,16 @@
+ #include "proc.h"
+ #include "spinlock.h"
+ 
++
++
++typedef struct {
++    char variable[MAX_VAR_NAME_LENGTH];
++    char value[MAX_VAR_VAL_LENGTH];
++} sysVar;
++
++sysVar sysVariables[MAX_VARIABLES];
++int sysVarNum = 0;
++
+ struct {
+   struct spinlock lock;
+   struct proc proc[NPROC];
+@@ -89,6 +99,17 @@ found:
+   p->state = EMBRYO;
+   p->pid = nextpid++;
+ 
++   //Task 2 Initialization
++  p->iotime = 0;
++  p->rtime  = 0;
++  p->ctime  = ticks;
++
++  //Task 3 initialization
++  p->ticksNum      = 0;
++  p->entryToQueue  = ticks;
++  p->approximation = QUANTUM;
++  p->decayFactor   = NORMAL;
++
+   release(&ptable.lock);
+ 
+   // Allocate kernel stack.
+@@ -200,6 +221,8 @@ fork(void)
+   np->parent = curproc;
+   *np->tf = *curproc->tf;
+ 
++  np->decayFactor = curproc->decayFactor;
++
+   // Clear %eax so that fork returns 0 in the child.
+   np->tf->eax = 0;
+ 
+@@ -247,6 +270,9 @@ exit(void)
+   end_op();
+   curproc->cwd = 0;
+ 
++  //Task 2
++  curproc->etime = ticks;
++
+   acquire(&ptable.lock);
+ 
+   // Parent might be sleeping in wait().
+@@ -330,6 +356,7 @@ scheduler(void)
+     // Enable interrupts on this processor.
+     sti();
+ 
++#ifdef DEFAULT
+     // Loop over process table looking for process to run.
+     acquire(&ptable.lock);
+     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+@@ -343,6 +370,10 @@ scheduler(void)
+       switchuvm(p);
+       p->state = RUNNING;
+ 
++      //proc state changed from runnable to running, rtime should be at least 1
++      if(p->rtime == 0)
++        p->rtime = 1;
++
+       swtch(&(c->scheduler), p->context);
+       switchkvm();
+ 
+@@ -351,6 +382,104 @@ scheduler(void)
+       c->proc = 0;
+     }
+     release(&ptable.lock);
++#endif
++
++#ifdef FCFS
++        struct proc* min_proc = 0;
++
++        acquire(&ptable.lock);
++        for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
++            if(p->state != RUNNABLE)
++               continue;
++
++            if(min_proc == 0 || p->entryToQueue < min_proc->entryToQueue)
++                min_proc = p;
++        }
++
++        // Switch to chosen process.  It is the process's job
++        // to release ptable.lock and then reacquire it
++        // before jumping back to us.
++        if(min_proc != 0)
++        {
++            c->proc = min_proc;
++            switchuvm(min_proc);
++            min_proc->state = RUNNING;
++
++            //proc state changed from runnable to running, rtime should be at least 1
++            if(p->rtime == 0)
++              p->rtime = 1;
++
++
++            swtch(&(c->scheduler), min_proc->context);
++            switchkvm();
++
++            // Process is done running for now.
++            // It should have changed its p->state before coming back.
++            c->proc = 0;
++        }
++        release(&ptable.lock);
++#endif
++
++#ifdef SRT
++        struct proc * min_proc = 0;
++        acquire(&ptable.lock);
++
++        for (p = ptable.proc; p < &ptable.proc[NPROC]; p++){
++            if( p->state == RUNNABLE && (min_proc == 0 || p->approximation < min_proc->approximation) )
++            {
++                min_proc = p;
++            }
++        }
++
++        // Switch to chosen process.  It is the process's job
++        // to release ptable.lock and then reacquire it
++        // before jumping back to us.
++        if(min_proc != 0)
++        {
++            c->proc = min_proc;
++            switchuvm(min_proc);
++            min_proc->state = RUNNING;
++
++            swtch(&(c->scheduler), min_proc->context);
++            switchkvm();
++
++            // Process is done running for now.
++            // It should have changed its p->state before coming back.
++            c->proc = 0;
++        }
++
++        release(&ptable.lock);
++#endif
++
++#ifdef CFSD
++        struct proc * min_proc = 0;
++        acquire(&ptable.lock);
++
++        for (p = ptable.proc; p < &ptable.proc[NPROC]; p++){
++            if(p->state == RUNNABLE && (min_proc == 0 || calculateRatio(p) < calculateRatio(min_proc)))
++                min_proc = p;
++        }
++
++
++        // Switch to chosen process.  It is the process's job
++        // to release ptable.lock and then reacquire it
++        // before jumping back to us.
++        if(min_proc != 0)
++        {
++            c->proc = min_proc;
++            switchuvm(min_proc);
++            min_proc->state = RUNNING;
++
++            swtch(&(c->scheduler), min_proc->context);
++            switchkvm();
++
++            // Process is done running for now.
++            // It should have changed its p->state before coming back.
++            c->proc = 0;
++        }
++        release(&ptable.lock);
++
++#endif
+ 
+   }
+ }
+@@ -386,7 +515,14 @@ void
+ yield(void)
+ {
+   acquire(&ptable.lock);  //DOC: yieldlock
+-  myproc()->state = RUNNABLE;
++  struct proc *p = myproc();
++  p->state = RUNNABLE;
++
++  //task 3 re-initializing
++  p->ticksNum = 0;
++  p->entryToQueue = ticks;
++  updateSRT(p);
++
+   sched();
+   release(&ptable.lock);
+ }
+@@ -439,6 +575,9 @@ sleep(void *chan, struct spinlock *lk)
+   p->chan = chan;
+   p->state = SLEEPING;
+ 
++  //update approximation if needed
++  updateSRT(p);
++
+   sched();
+ 
+   // Tidy up.
+@@ -460,8 +599,13 @@ wakeup1(void *chan)
+   struct proc *p;
+ 
+   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+-    if(p->state == SLEEPING && p->chan == chan)
++    if(p->state == SLEEPING && p->chan == chan){
+       p->state = RUNNABLE;
++
++        //task 3 re-initializing
++        p->ticksNum = 0;
++        p->entryToQueue = ticks;
++    }
+ }
+ 
+ // Wake up all processes sleeping on chan.
+@@ -486,8 +630,12 @@ kill(int pid)
+     if(p->pid == pid){
+       p->killed = 1;
+       // Wake process from sleep if necessary.
+-      if(p->state == SLEEPING)
+-        p->state = RUNNABLE;
++      if(p->state == SLEEPING){
++        p->state    = RUNNABLE;
++        //task 3 re-initializing
++        p->ticksNum = 0;
++        p->entryToQueue = ticks;
++      }
+       release(&ptable.lock);
+       return 0;
+     }
+@@ -532,3 +680,174 @@ procdump(void)
+     cprintf("\n");
+   }
+ }
++
++//return index of variable if exist in variables array, -1 otherwise
++int findVar(char* variable){
++    for(int i = 0; i < sysVarNum; i++){
++        if(strncmp(sysVariables[i].variable, variable, MAX_VAR_NAME_LENGTH) == 0)
++            return i;
++    }
++    return -1;
++}
++
++
++void shiftLeft(int index){
++    for(; index < sysVarNum -1; index++){
++        strncpy(sysVariables[index].variable, sysVariables[index + 1].variable, MAX_VAR_NAME_LENGTH);
++        strncpy(sysVariables[index].value, sysVariables[index + 1].value, MAX_VAR_VAL_LENGTH);
++    }
++}
++
++//checks if variable name is legal
++//return 1 if legal, 0 if not
++int isVarNameLegit(char* variable){
++    char* tempVar = variable;
++
++    while (*tempVar){
++        if ( !(*tempVar >= 'A' && *tempVar <= 'Z') && !(*tempVar >= 'a' && *tempVar <= 'z')){
++            return 0;
++        }
++        tempVar++;
++    }
++    return 1;
++}
++
++int setVariable(char* variable, char* value){
++    int idx;
++    acquire(&ptable.lock);
++
++    if (!isVarNameLegit(variable)){
++        release(&ptable.lock);
++        return -2;
++    }
++
++    idx = findVar(variable); // check if variable with same name exists
++    if ( (idx == -1) && (sysVarNum == MAX_VARIABLES) ){ // verify number of variables set
++        release(&ptable.lock);
++        return -1; // too many variables, can not add new variable.
++    }
++
++    if (idx == -1){ // variable does not exist
++        idx = sysVarNum;
++        strncpy(sysVariables[idx].variable, variable, MAX_VAR_NAME_LENGTH);
++        sysVariables[idx].variable[strlen(variable)] = '\0';
++        sysVarNum++;
++    }
++    strncpy(sysVariables[idx].value, value, MAX_VAR_VAL_LENGTH);
++    sysVariables[idx].value[strlen(value)] = '\0';
++    release(&ptable.lock);
++    return 0;
++}
++
++int remVariable(char* variable)
++{
++    int idx;
++    acquire(&ptable.lock);
++
++    idx = findVar(variable);
++    if (idx == -1){//variable not exist
++        release(&ptable.lock);
++        return -1;
++    }
++
++    shiftLeft(idx);
++    sysVarNum--;
++    release(&ptable.lock);
++
++    return 0;
++}
++
++int getVariable(char* variable, char* value)
++{
++    acquire(&ptable.lock);
++    int idx;
++
++    idx = findVar(variable);
++    if (idx == -1){//variable not exist
++        release(&ptable.lock);
++        return -1;
++    }
++
++    strncpy(value, sysVariables[idx].value, MAX_VAR_VAL_LENGTH);
++
++    release(&ptable.lock);
++    return 0;
++}
++
++int wait2(int pid, int* wtime, int* rtime, int* iotime){
++  struct proc *p;
++  int havekids;
++  struct proc *curproc = myproc();
++
++  acquire(&ptable.lock);
++  for(;;){
++    // Scan through table looking for exited children.
++    havekids = 0;
++    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
++      if(p->pid != pid)
++        continue;
++      havekids = 1;
++      if(p->state == ZOMBIE){
++        // Found one.
++        *wtime = p->etime - p->ctime - p->iotime - p->rtime;
++        *rtime = p->rtime;
++        *iotime = p->iotime;
++
++        kfree(p->kstack);
++        p->kstack = 0;
++        freevm(p->pgdir);
++        p->pid = 0;
++        p->parent = 0;
++        p->name[0] = 0;
++        p->killed = 0;
++        p->state = UNUSED;
++        release(&ptable.lock);
++        return pid;
++      }
++    }
++
++    // No point waiting if we don't have any children.
++    if(!havekids || curproc->killed){
++      release(&ptable.lock);
++      return -1;
++    }
++
++    // Wait for children to exit.  (See wakeup1 call in proc_exit.)
++    sleep(curproc, &ptable.lock);  //DOC: wait-sleep
++  }
++}
++
++void updateProcessesTime() {
++    struct proc *p;
++    acquire(&ptable.lock);
++    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
++        if (p->state == RUNNING) {
++            (p->rtime)++;
++            (p->ticksNum)++;
++        } else if (p->state == SLEEPING) {
++            (p->iotime)++;
++        }
++    }
++    release(&ptable.lock);
++}
++
++void updateSRT(struct proc* p){
++    if(p->rtime >= p->approximation){
++        p->approximation = (1 + ALPHA) * p->approximation;
++    }
++}
++
++int set_priority(int priority) {
++    if (priority == high)
++        myproc()->decayFactor = HIGH;
++    else if (priority == normal)
++        myproc()->decayFactor = NORMAL;
++    else if (priority == low)
++        myproc()->decayFactor = LOW;
++    else return -1;
++    return 0;
++}
++
++float calculateRatio(struct proc* p){
++    return  (float)( (p->rtime * p->decayFactor) / (ticks - p->ctime - p->iotime) );
++}
+\ No newline at end of file
+diff --git a/proc.h b/proc.h
+index 1647114..839dff7 100644
+--- a/proc.h
++++ b/proc.h
+@@ -49,8 +49,28 @@ struct proc {
+   struct file *ofile[NOFILE];  // Open files
+   struct inode *cwd;           // Current directory
+   char name[16];               // Process name (debugging)
++
++  int ctime;				   // Creation time
++  int etime;				   // End time
++  int iotime;				   // I/O time
++  int rtime;				   // Running time
++
++  int ticksNum;                // DEFAULT num of ticks per running quanta
++  int entryToQueue;            // FCFS when process enter the queue
++  float approximation;         // SRT
++  float decayFactor;           // CFSD
++
+ };
+ 
++void updateProcessesTime();
++void updateSRT(struct proc* p);
++float calculateRatio(struct proc* p);
++
++enum Priority {high = 1, normal = 2, low = 3};
++#define HIGH 0.75
++#define NORMAL 1
++#define LOW 1.25
++
+ // Process memory is laid out contiguously, low addresses first:
+ //   text
+ //   original data and bss
+diff --git a/sh.c b/sh.c
+index 054bab9..5f0f081 100644
+--- a/sh.c
++++ b/sh.c
+@@ -3,6 +3,7 @@
+ #include "types.h"
+ #include "user.h"
+ #include "fcntl.h"
++#include "param.h"
+ 
+ // Parsed command representation
+ #define EXEC  1
+@@ -13,6 +14,16 @@
+ 
+ #define MAXARGS 10
+ 
++
++
++struct sHistory {
++    char commands[MAX_HISTORY][100];
++    int  firstCommandIndex;
++    int  lastCommandIndex;
++};
++
++struct sHistory history;
++
+ struct cmd {
+   int type;
+ };
+@@ -141,8 +152,143 @@ getcmd(char *buf, int nbuf)
+   return 0;
+ }
+ 
+-int
+-main(void)
++
++
++/************************************************************************************/
++void replaceSysVariables(char* buf);
++int isLetter(char* ch);
++
++//add all commands to history array
++//history will hold maximum MAX_HISTORY commands
++void addToHistory(char* buf){
++    if(history.firstCommandIndex == history.lastCommandIndex && strcmp(history.commands[history.firstCommandIndex], "") != 0){
++        history.firstCommandIndex += 1;
++        history.firstCommandIndex %= MAX_HISTORY;
++    }
++
++    if(strcmp(buf, "\n") != 0){
++        strcpy(history.commands[history.lastCommandIndex], buf);
++        history.lastCommandIndex += 1;
++        history.lastCommandIndex %= MAX_HISTORY;
++    }
++}
++
++//display last MAX_HISTORY commands
++void displayHistory(){
++    int i;
++
++    for (i = 0; i < MAX_HISTORY; i++){
++        if(strcmp(history.commands[(history.firstCommandIndex + i) % MAX_HISTORY], "") != 0)
++            printf(1, "%d. %s", i+1, history.commands[(history.firstCommandIndex + i) % MAX_HISTORY]);
++    }
++}
++
++//handle "history" and "history -l ##" commands
++// return 1 if "history" is called, no need to fork and exec
++int handleHistory(char* buf){
++    if(strcmp(buf, "history\n") == 0){
++        displayHistory();
++        return 1;
++    }
++
++     if (strncmp(buf, "history -l", 10) == 0 && (strlen(buf)==13 || strlen(buf)==14)){
++        int index = atoi(buf+11);
++
++        if (index > 0 && index < MAX_HISTORY){
++            if(strcmp(history.commands[(history.firstCommandIndex + index - 1) % MAX_HISTORY], "history\n") == 0)  {
++                displayHistory();
++                return 1;
++            }
++
++            strcpy(buf, history.commands[(history.firstCommandIndex + index - 1) % MAX_HISTORY]);
++            replaceSysVariables(buf);
++        }
++     }
++
++    return 0;
++}
++
++//replace system variables with their values, if exist
++// replace to "ERROR" if $<name> does not exist
++void replaceSysVariables(char* buf)
++{
++    char  rest[MAX_VAR_VAL_LENGTH];
++    char  varName[MAX_VAR_NAME_LENGTH];
++    char  value[MAX_VAR_VAL_LENGTH];
++    int   varNameSize = 0;
++    char* tmpch = buf;
++
++    while (*tmpch){
++        if (*tmpch == '$') {
++            tmpch++; // $test
++            while (*tmpch && *tmpch != '\n' && *tmpch != '$' && *tmpch != ' '){
++                varNameSize++;
++                tmpch++;
++            }
++            strcpy(rest, tmpch);
++            strncpy(varName, tmpch-varNameSize, varNameSize);
++
++            if (varNameSize < MAX_VAR_NAME_LENGTH)
++                varName[varNameSize] = 0;
++            if (varName[varNameSize-1] == '\n')
++                varName[varNameSize-1] = 0;
++            if(getVariable(varName, value) == -1){
++                return;
++            }
++
++            strcpy(tmpch-varNameSize-1, value);
++            strcpy(tmpch-varNameSize-1+strlen(value), rest);
++            tmpch = tmpch-varNameSize-1;
++            tmpch += strlen(value);
++            varNameSize = 0;
++            value[0] = 0;
++        }
++        else {
++            tmpch++;
++        }
++    }
++}
++
++int isSetVariableCommand(char* buf)
++{
++    int idx = 0;
++    char* ch = buf;
++    char varName[MAX_VAR_NAME_LENGTH];
++    char varValue[MAX_VAR_VAL_LENGTH];
++
++    while (*ch){
++        if (*ch == '=' && idx > 0 && isLetter(ch-1) && *(ch+1))
++        {
++            if(idx >= MAX_VAR_NAME_LENGTH)
++                return 0;
++
++            strncpy(varName, buf, idx);
++            varName[idx] = 0;
++            idx++;
++            ch++;
++            strncpy(varValue, ch, MAX_VAR_VAL_LENGTH);
++            if (varValue[strlen(varValue)-1] == '\n')
++                varValue[strlen(varValue)-1] = 0;
++            setVariable(varName, varValue);
++            return 1;
++        }
++
++        idx++;
++        ch++;
++    }
++    return 0;
++}
++
++
++int isLetter(char* ch)
++{
++    if ((*ch >= 'a' && *ch <= 'z') || (*ch >= 'A' && *ch <= 'Z'))
++        return 1;
++    return 0;
++}
++
++
++int main(void)
+ {
+   static char buf[100];
+   int fd;
+@@ -157,6 +303,16 @@ main(void)
+ 
+   // Read and run input commands.
+   while(getcmd(buf, sizeof(buf)) >= 0){
++
++    addToHistory(buf);
++    replaceSysVariables(buf);
++
++    if(handleHistory(buf) == 1)
++        continue;
++
++    if(isSetVariableCommand(buf))
++        continue;
++
+     if(buf[0] == 'c' && buf[1] == 'd' && buf[2] == ' '){
+       // Chdir must be called by the parent, not the child.
+       buf[strlen(buf)-1] = 0;  // chop \n
+diff --git a/syscall.c b/syscall.c
+index f447101..72329d7 100644
+--- a/syscall.c
++++ b/syscall.c
+@@ -104,6 +104,11 @@ extern int sys_wait(void);
+ extern int sys_write(void);
+ extern int sys_uptime(void);
+ extern int sys_yield(void);
++extern int sys_setVariable(void);
++extern int sys_getVariable(void);
++extern int sys_remVariable(void);
++extern int sys_wait2(void);
++extern int sys_set_priority(void);
+ 
+ static int (*syscalls[])(void) = {
+ [SYS_fork]    sys_fork,
+@@ -128,6 +133,11 @@ static int (*syscalls[])(void) = {
+ [SYS_mkdir]   sys_mkdir,
+ [SYS_close]   sys_close,
+ [SYS_yield]   sys_yield,
++[SYS_setVariable] sys_setVariable,
++[SYS_getVariable] sys_getVariable,
++[SYS_remVariable] sys_remVariable,
++[SYS_wait2]   sys_wait2,
++[SYS_set_priority]  sys_set_priority,
+ };
+ 
+ void
+diff --git a/syscall.h b/syscall.h
+index 73b388e..aed5b39 100644
+--- a/syscall.h
++++ b/syscall.h
+@@ -21,3 +21,9 @@
+ #define SYS_mkdir  20
+ #define SYS_close  21
+ #define SYS_yield  22
++
++#define SYS_setVariable 23
++#define SYS_getVariable 24
++#define SYS_remVariable 25
++#define SYS_wait2  26
++#define SYS_set_priority 27
+\ No newline at end of file
+diff --git a/sysproc.c b/sysproc.c
+index 2014f12..14c6aa9 100644
+--- a/sysproc.c
++++ b/sysproc.c
+@@ -96,3 +96,50 @@ sys_uptime(void)
+   release(&tickslock);
+   return xticks;
+ }
++
++int sys_setVariable(void){
++    char* variable;
++    char* value;
++
++    if (argptr(0, &variable, 32) < 0 || argptr(1, &value, 128) < 0)
++        return -1;
++
++    return setVariable(variable, value);
++}
++
++int sys_getVariable(void){
++    char* variable;
++    char* value;
++
++    if (argptr(0, &variable, 32) < 0 || argptr(1, &value, 128) < 0)
++        return -1;
++
++    return getVariable(variable, value);
++}
++
++int sys_remVariable(void){
++    char* variable;
++
++    if (argptr(0, &variable, 32) < 0 )
++        return -1;
++
++    return remVariable(variable);
++}
++
++int sys_wait2(void){
++  int pid;
++  int *wtime;
++  int *rtime;
++  int *iotime;
++
++  if (argint(0, &pid)<0 || argptr(1, (void *)&wtime, sizeof(int*))<0 || argptr(2, (void *)&rtime, sizeof(int*))<0 || argptr(3, (void *)&iotime, sizeof(int*))<0)
++    return -1;
++  return wait2(pid, wtime, rtime, iotime);
++}
++
++int sys_set_priority(void) {
++    int priority;
++    if (argint(0, &priority) < 0)
++        return -1;
++    else return set_priority(priority);
++}
+\ No newline at end of file
+diff --git a/trap.c b/trap.c
+index 41c66eb..34ea2ea 100644
+--- a/trap.c
++++ b/trap.c
+@@ -53,6 +53,8 @@ trap(struct trapframe *tf)
+       ticks++;
+       wakeup(&ticks);
+       release(&tickslock);
++
++      updateProcessesTime();//update rtime, iotime
+     }
+     lapiceoi();
+     break;
+@@ -100,11 +102,13 @@ trap(struct trapframe *tf)
+   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
+     exit();
+ 
++  #if defined(DEFAULT) || defined(SRT) || defined(CFSD)
+   // Force process to give up CPU on clock tick.
+   // If interrupts were on while locks held, would need to check nlock.
+-  if(myproc() && myproc()->state == RUNNING &&
+-     tf->trapno == T_IRQ0+IRQ_TIMER)
++  struct proc* p = myproc();
++  if(p && p->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER && p->ticksNum >= QUANTUM)
+     yield();
++  #endif
+ 
+   // Check if the process has been killed since we yielded
+   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
+diff --git a/ulib.c b/ulib.c
+index 51a9e74..02cb4a1 100644
+--- a/ulib.c
++++ b/ulib.c
+@@ -15,6 +15,18 @@ strcpy(char *s, char *t)
+   return os;
+ }
+ 
++char* strncpy(char* s, const char* t, int n){
++    char* os = s;
++
++    while(n-- > 0 && (*s++ = *t++) != 0)
++        ;
++
++    while(n-- > 0)
++        *s++ = 0;
++
++    return os;
++}
++
+ int
+ strcmp(const char *p, const char *q)
+ {
+@@ -23,6 +35,14 @@ strcmp(const char *p, const char *q)
+   return (uchar)*p - (uchar)*q;
+ }
+ 
++int strncmp(const char *p, const char *q, const int size)
++{
++  int i=0;
++  while(*p && *p == *q && i<size-1)
++    p++, q++, i++;
++  return (uchar)*p - (uchar)*q;
++}
++
+ uint
+ strlen(char *s)
+ {
+diff --git a/user.h b/user.h
+index 9906db3..b8808ff 100644
+--- a/user.h
++++ b/user.h
+@@ -25,12 +25,20 @@ int sleep(int);
+ int uptime(void);
+ int yield(void);
+ 
++int setVariable(char* variable, char* value);
++int getVariable(char* variable, char* value);
++int remVariable(char* variable);
++int wait2(int pid, int* wtime, int* rtime, int* iotime);
++int set_priority(int priority);
++
+ // ulib.c
+ int stat(char*, struct stat*);
+ char* strcpy(char*, char*);
++char* strncpy(char* s, const char* t, int n);
+ void *memmove(void*, void*, int);
+ char* strchr(const char*, char c);
+ int strcmp(const char*, const char*);
++int strncmp(const char *p, const char *q, const int size);
+ void printf(int, char*, ...);
+ char* gets(char*, int max);
+ uint strlen(char*);
+diff --git a/usys.S b/usys.S
+index 8bfd8a1..6a93e5b 100644
+--- a/usys.S
++++ b/usys.S
+@@ -29,3 +29,10 @@ SYSCALL(getpid)
+ SYSCALL(sbrk)
+ SYSCALL(sleep)
+ SYSCALL(uptime)
++
++
++SYSCALL(setVariable)
++SYSCALL(getVariable)
++SYSCALL(remVariable)
++SYSCALL(wait2)
++SYSCALL(set_priority)
+\ No newline at end of file
