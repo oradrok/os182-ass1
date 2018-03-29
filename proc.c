@@ -101,12 +101,13 @@ found:
 
    //Task 2 Initialization
   p->iotime = 0;
-  p->rtime = 0;
-  p->ctime = ticks;
+  p->rtime  = 0;
+  p->ctime  = ticks;
 
   //Task 3 initialization
-  p->ticksNum = 0;
+  p->ticksNum     = 0;
   p->entryToQueue = ticks;
+  p->approximation = QUANTUM;
 
   release(&ptable.lock);
 
@@ -415,6 +416,38 @@ scheduler(void)
         }
         release(&ptable.lock);
 #endif
+
+#ifdef SRT
+        struct proc * min_proc = 0;
+        acquire(&ptable.lock);
+
+        for (p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+            if( p->state == RUNNABLE && (min_proc == 0 || p->approximation < min_proc->approximation) )
+            {
+                min_proc = p;
+            }
+        }
+
+        // Switch to chosen process.  It is the process's job
+        // to release ptable.lock and then reacquire it
+        // before jumping back to us.
+        if(min_proc != 0)
+        {
+            c->proc = min_proc;
+            switchuvm(min_proc);
+            min_proc->state = RUNNING;
+
+            swtch(&(c->scheduler), min_proc->context);
+            switchkvm();
+
+            // Process is done running for now.
+            // It should have changed its p->state before coming back.
+            c->proc = 0;
+        }
+
+        release(&ptable.lock);
+#endif
+
   }
 }
 
@@ -455,6 +488,7 @@ yield(void)
   //task 3 re-initializing
   p->ticksNum = 0;
   p->entryToQueue = ticks;
+  updateSRT(p);
 
   sched();
   release(&ptable.lock);
@@ -507,6 +541,9 @@ sleep(void *chan, struct spinlock *lk)
   // Go to sleep.
   p->chan = chan;
   p->state = SLEEPING;
+
+  //update approximation if needed
+  updateSRT(p);
 
   sched();
 
@@ -759,4 +796,10 @@ void updateProcessesTime() {
         }
     }
     release(&ptable.lock);
+}
+
+void updateSRT(struct proc* p){
+    if(p->rtime >= p->approximation){
+        p->approximation = (1 + ALPHA) * p->approximation;
+    }
 }

@@ -23,3 +23,4 @@
 
 //task 3
 #define QUANTUM 5
+#define ALPHA 0.5

@@ -55,8 +55,9 @@ struct proc {
   int iotime;				   // I/O time
   int rtime;				   // Running time
 
-  int ticksNum;                // num of ticks per running quanta
+  int ticksNum;                // DEFAULT num of ticks per running quanta
   int entryToQueue;            // FCFS when process enter the queue
+  float approximation;         // SRT
 
 };
 
