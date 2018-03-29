@@ -29,6 +29,8 @@ SYSCALL(getpid)
 SYSCALL(sbrk)
 SYSCALL(sleep)
 SYSCALL(uptime)
+
+
 SYSCALL(setVariable)
 SYSCALL(getVariable)
 SYSCALL(remVariable)
