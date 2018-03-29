@@ -17,7 +17,7 @@ int gcd ( int n1, int n2 )
         if(n1%i==0 && n2%i==0)
             gcd = i;
     }
-    return 1;
+    return gcd;
 }
 
 
