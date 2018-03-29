@@ -1,7 +1,7 @@
 #include "types.h"
 #include "user.h"
 #define NUM_OF_CHILDS 11
-#define CLAC_MEDIUM_SIZE_LOOP 1000000
+#define CALC_MEDIUM_SIZE_LOOP 1000000
 #define CALC_LARGE_SIZE_LOOP 200000000
 #define IO_MEDIUM_SIZE_LOOP 1000
 #define IO_LARGE_SIZE_LOOP 20000
@@ -19,7 +19,7 @@ gcd ( int a, int b )
 
 
 void small_loop_calculation(){
-	for(int j=0;j<CLAC_MEDIUM_SIZE_LOOP;++j)
+	for(int j=0;j<CALC_MEDIUM_SIZE_LOOP;++j)
 		gcd(j+1,j+2);
 
 }
@@ -49,14 +49,11 @@ void large_loop_print(){
 
 int main(int argc, char *argv[])
 {
+int cfsd = 0;
 
-
-/*#ifdef CFSD
-	int cfsd = 1;
-#else
-	int cfsd = 0;
-#endif*/
-//SchedSanity
+#ifdef CFSD
+	cfsd = 1;
+#endif
 
 	int pids[NUM_OF_CHILDS];
 
@@ -64,7 +61,7 @@ int main(int argc, char *argv[])
 		int pid;
 	    pid = fork();
 		if(pid == 0){
-//			if(cfsd) set_priority(i%3 + 1);
+			if(cfsd) set_priority(i%3 + 1);
 			if(i%4 == 0)
 				small_loop_calculation(); //Calculation only - These processes will perform asimple calculation within a medium sized loop
 			if(i%4 == 1)
