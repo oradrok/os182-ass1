@@ -366,6 +366,8 @@ scheduler(void)
       switchuvm(p);
       p->state = RUNNING;
 
+      p->iotime = 100000;
+
       //proc state changed from runnable to running, rtime should be at least 1
       if(p->rtime == 0)
         p->rtime = 1;
