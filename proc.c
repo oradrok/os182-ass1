@@ -364,8 +364,9 @@ scheduler(void)
       switchuvm(p);
       p->state = RUNNING;
 
-      //proc state changed from runnable to running, add 1 to rtime
-      (p->rtime)++;
+      //proc state changed from runnable to running, rtime should be at least 1
+      if(p->rtime == 0)
+        p->rtime = 1;
 
       swtch(&(c->scheduler), p->context);
       switchkvm();
