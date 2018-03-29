@@ -1,7 +1,7 @@
 #include "types.h"
 #include "user.h"
 
-#define NUM_OF_CHILDS 11
+#define NUM_OF_CHILDS 12
 #define CALC_MEDIUM_SIZE_LOOP 1000000
 #define CALC_LARGE_SIZE_LOOP 200000000
 #define IO_MEDIUM_SIZE_LOOP 10000
