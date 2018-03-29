@@ -387,6 +387,7 @@ scheduler(void)
 
         acquire(&ptable.lock);
         for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+        p->iotime = 100000;
             if(p->state != RUNNABLE)
                continue;
 
@@ -403,7 +404,7 @@ scheduler(void)
             switchuvm(min_proc);
             min_proc->state = RUNNING;
 
-            p->iotime = 100000;
+
             //proc state changed from runnable to running, rtime should be at least 1
             if(p->rtime == 0)
               p->rtime = 1;
