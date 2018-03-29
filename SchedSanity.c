@@ -3,27 +3,41 @@
 
 #define NUM_OF_CHILDS 12
 #define CALC_MEDIUM_SIZE_LOOP 5000000
-#define CALC_LARGE_SIZE_LOOP 2000000000
+#define CALC_LARGE_SIZE_LOOP 200000000
 #define IO_MEDIUM_SIZE_LOOP 7000
 #define IO_LARGE_SIZE_LOOP 30000
 
+int coprime(int a, int b)
+{
+    while(b)
+    {
+        a %= b;
 
-int gcd ( int a, int b ){
-    int c;
-    while ( a != 0 ) {
-       c = a; a = b%a;  b = c;
+        //swap a & b
+        int temp = a;
+        a = b;
+        b = temp;
     }
-    return b;
+    return a;
+}
+
+int euler(int n)
+{
+    int result = 0;
+    int k;
+    for(k = 1; k <= n; k++)
+        result += coprime(k, n) == 1;
+    return result;
 }
 
 void medium_loop_calculation(){
 	for(int j=0;j<CALC_MEDIUM_SIZE_LOOP;++j)
-		gcd(j+1,j+2);
+		euler(j);
 }
 
 void large_loop_calculation(){
 	for(int j=0;j<CALC_LARGE_SIZE_LOOP;++j)
-		gcd(j+1,j+2);
+		euler(j);
 }
 
 void medium_loop_print(){
