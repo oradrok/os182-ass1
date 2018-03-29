@@ -8,19 +8,13 @@
 #define IO_LARGE_SIZE_LOOP 20000
 
 
-int gcd ( int n1, int n2 )
-{
-    int i;
-    int gcd = 0;
-    for(i=1; i <= n1 && i <= n2; ++i)
-    {
-        if(n1%i==0 && n2%i==0)
-            gcd = i;
+int gcd ( int a, int b ){
+    int c;
+    while ( a != 0 ) {
+       c = a; a = b%a;  b = c;
     }
-    return gcd;
+    return b;
 }
-
-
 
 void medium_loop_calculation(){
 	for(int j=0;j<CALC_MEDIUM_SIZE_LOOP;++j)
