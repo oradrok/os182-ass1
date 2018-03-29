@@ -368,8 +368,6 @@ scheduler(void)
 
       p->iotime = 100000;
 
-      printf(1, "*****************************************************************************************************************");
-
       //proc state changed from runnable to running, rtime should be at least 1
       if(p->rtime == 0)
         p->rtime = 1;
