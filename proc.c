@@ -106,6 +106,7 @@ found:
 
   //Task 3 initialization
   p->ticksNum = 0;
+  p->entryToQueue = ticks;
 
   release(&ptable.lock);
 
@@ -351,6 +352,7 @@ scheduler(void)
     // Enable interrupts on this processor.
     sti();
 
+#ifdef DEFAULT
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
@@ -376,7 +378,38 @@ scheduler(void)
       c->proc = 0;
     }
     release(&ptable.lock);
+#endif
 
+#ifdef FCFS
+        struct proc* min_proc = 0;
+
+        acquire(&ptable.lock);
+        for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+            if(p->state != RUNNABLE)
+               continue;
+
+            if(min_proc == 0 || p->entryToQueue < min_proc->entryToQueue)
+                min_proc = p;
+        }
+
+        // Switch to chosen process.  It is the process's job
+        // to release ptable.lock and then reacquire it
+        // before jumping back to us.
+        if(min_proc != 0)
+        {
+            c->proc = min_proc;
+            switchuvm(min_proc);
+            min_proc->state = RUNNING;
+
+            swtch(&(c->scheduler), min_proc->context);
+            switchkvm();
+
+            // Process is done running for now.
+            // It should have changed its p->state before coming back.
+            c->proc = 0;
+        }
+        release(&ptable.lock);
+#endif
   }
 }
 
@@ -416,6 +449,7 @@ yield(void)
 
   //task 3 re-initializing
   p->ticksNum = 0;
+  p->entryToQueue = ticks;
 
   sched();
   release(&ptable.lock);
@@ -469,6 +503,10 @@ sleep(void *chan, struct spinlock *lk)
   p->chan = chan;
   p->state = SLEEPING;
 
+  //task 3 re-initializing
+  p->ticksNum = 0;
+  entryToQueuep->entryToQueue = ticks;
+
   sched();
 
   // Tidy up.
@@ -492,8 +530,6 @@ wakeup1(void *chan)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(p->state == SLEEPING && p->chan == chan){
       p->state = RUNNABLE;
-      //task 3 re-initializing
-      p->ticksNum = 0;
     }
 }
 
@@ -523,6 +559,7 @@ kill(int pid)
         p->state    = RUNNABLE;
         //task 3 re-initializing
         p->ticksNum = 0;
+        p->entryToQueue = ticks;
       }
       release(&ptable.lock);
       return 0;

@@ -56,6 +56,7 @@ struct proc {
   int rtime;				   // Running time
 
   int ticksNum;                // num of ticks per running quanta
+  int entryToQueue;            // FCFS when process enter the queue
 
 };
 
