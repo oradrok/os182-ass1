@@ -366,8 +366,6 @@ scheduler(void)
       switchuvm(p);
       p->state = RUNNING;
 
-      p->iotime = 100000;
-
       //proc state changed from runnable to running, rtime should be at least 1
       if(p->rtime == 0)
         p->rtime = 1;
@@ -387,7 +385,6 @@ scheduler(void)
 
         acquire(&ptable.lock);
         for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-        p->iotime = 100000;
             if(p->state != RUNNABLE)
                continue;
 
@@ -403,7 +400,6 @@ scheduler(void)
             c->proc = min_proc;
             switchuvm(min_proc);
             min_proc->state = RUNNING;
-
 
             //proc state changed from runnable to running, rtime should be at least 1
             if(p->rtime == 0)
@@ -512,10 +508,6 @@ sleep(void *chan, struct spinlock *lk)
   p->chan = chan;
   p->state = SLEEPING;
 
-  //task 3 re-initializing
-  p->ticksNum = 0;
-  p->entryToQueue = ticks;
-
   sched();
 
   // Tidy up.
@@ -539,6 +531,10 @@ wakeup1(void *chan)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(p->state == SLEEPING && p->chan == chan){
       p->state = RUNNABLE;
+
+        //task 3 re-initializing
+        p->ticksNum = 0;
+        p->entryToQueue = ticks;
     }
 }
 
